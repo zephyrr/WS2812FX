@@ -48,17 +48,32 @@ Anyway the basic overview it that after setting up some segments, one periodical
 of each segment against the current millis() and calls each if needed; it receives back the delay before the next call.  If any
 segment gets calls, then adafruit's neopixel library pushes the data out to the pixels.
 
-
-
--  has a number of iterations (calls) counter, since effect begun on this segment
-
-main loop:
--  for each active segment, checks whether it's ready to be called again
--  if so, calls and uses returned time to set next call time
--  can also call if triggered (rather than by elapsed time)
+void WS2812FX::service() {
+  if(_running || _triggered) {
+    unsigned long now = millis(); // Be aware, millis() rolls over every 49 days
+    bool doShow = false;
+    for(uint8_t i=0; i < _num_segments; i++) {
+      _segment_index = i;
+      if(now > SEGMENT_RUNTIME.next_time || _triggered) {
+        doShow = true;
+        uint16_t delay = (this->*_mode[SEGMENT.mode])();
+        SEGMENT_RUNTIME.next_time = now + max((int)delay, SPEED_MIN);
+        SEGMENT_RUNTIME.counter_mode_call++;
+      }
+    }
+    if(doShow) {
+      delay(1); // for ESP32 (see https://forums.adafruit.com/viewtopic.php?f=47&t=117327)
+      Adafruit_NeoPixel::show();
+    }
+    _triggered = false;
+  }
+}
 
 For each mode there are RAM arrays:
 -  _mode[] has pointer to (member) function implementing effect
 -  _name[] has pointer to flash resident text string name of effect
 
+The effects are sometimes standalone.  Other times a useful and more general function is created and configured/customized
+to give the specific effect desireed.
 
+An effect (mode) member function (called through a pointer above).
