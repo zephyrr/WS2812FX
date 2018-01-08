@@ -9,6 +9,7 @@ There are two structures per segment:
 - segment describes the segment configuration (not normally evolved within the library, must be called from sketch)
 - segment_runtime has runtime info tracking state of an executing effect, changed dynamically as library runs
 
+~~~~
     typedef struct segment {
       uint8_t  mode;
       uint32_t colors[NUM_COLORS];
@@ -17,7 +18,7 @@ There are two structures per segment:
       uint16_t stop;
       bool     reverse;
     } segment;
-
+~~~~
 This specifies one segment, its effect, and some common paramaters; this would normally be changed by external code as
 part of configuring and setting up effects.
 - start and stop are indexes into the neopixel array
@@ -26,6 +27,7 @@ part of configuring and setting up effects.
 - colors is 1..3 colors used as a palette for the effect
 - reverse is a state, effect fwd or bwd
 
+~~~~
   // segment runtime parameters
   typedef struct segment_runtime {
     uint32_t counter_mode_step;
@@ -33,7 +35,7 @@ part of configuring and setting up effects.
     unsigned long next_time;
     uint16_t aux_param;
   } segment_runtime;
-
+~~~~
 This contains dynamic data about the current execution, changed during execution by the effect and the overall effect controller.
 - next_time is the millisecond time when the effect should be called again (maintained and used by control)
 - counter_mode_call is a counter for how many time the effect function has been called (maintained by control, used by effect)
@@ -48,6 +50,7 @@ Anyway the basic overview it that after setting up some segments, one periodical
 of each segment against the current millis() and calls each if needed; it receives back the delay before the next call.  If any
 segment gets calls, then adafruit's neopixel library pushes the data out to the pixels.
 
+~~~~
 void WS2812FX::service() {
   if(_running || _triggered) {
     unsigned long now = millis(); // Be aware, millis() rolls over every 49 days
@@ -68,7 +71,7 @@ void WS2812FX::service() {
     _triggered = false;
   }
 }
-
+~~~~
 For each mode there are RAM arrays:
 -  _mode[] has pointer to (member) function implementing effect
 -  _name[] has pointer to flash resident text string name of effect
