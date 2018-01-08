@@ -6,16 +6,50 @@ Each segment controls a contiguous portion of the overall neopixel string
 *By default there is one segment controlling the whole string*
 
 There are two structures per segment:
-- _segment describes the segment configuration (not normally evolved within the library, must be called from sketch)
-- _segment_runtime has runtime info tracking state of an executing effect, changed dynamically as library runs
+- segment describes the segment configuration (not normally evolved within the library, must be called from sketch)
+- segment_runtime has runtime info tracking state of an executing effect, changed dynamically as library runs
 
-_segment
--  has a start and end index into neopixel string
--  is controlled by one effect (idx 0 .. 55 currently)
--  has a palette of 1..3 colors
--  has a speed (mSec); for simple effects, this is the time between updates
+    typedef struct segment {
+      uint8_t  mode;
+      uint32_t colors[NUM_COLORS];
+      uint16_t speed;
+      uint16_t start;
+      uint16_t stop;
+      bool     reverse;
+    } segment;
 
-_segment_runtime
+This specifies one segment, its effect, and some common paramaters; this would normally be changed by external code as
+part of configuring and setting up effects.
+- start and stop are indexes into the neopixel array
+- mode is the index of the selected effect (mode) for this segment; the rest are available resources for this segment:
+- speed gives the effect an idea of speed in mSec (for simple effects it's the length of the cycle, but can be more complicated)
+- colors is 1..3 colors used as a palette for the effect
+- reverse is a state, effect fwd or bwd
+
+  // segment runtime parameters
+  typedef struct segment_runtime {
+    uint32_t counter_mode_step;
+    uint32_t counter_mode_call;
+    unsigned long next_time;
+    uint16_t aux_param;
+  } segment_runtime;
+
+This contains dynamic data about the current execution, changed during execution by the effect and the overall effect controller.
+- next_time is the millisecond time when the effect should be called again (maintained and used by control)
+- counter_mode_call is a counter for how many time the effect function has been called (maintained by control, used by effect)
+    one usage would be doing phases of the effect by modulo of this number
+- counter_mode_step is used by the effect to step its effect; typically it might be an index of an LED (maintained & used by effect)
+- aux-praam is an auxiliarry data storage for whatever the effect wants to save (maintained and used by effect)
+
+It's not clear to me why these are separate; they seem to be used together in lockstep.  Maybe I missed something, or
+perhaps it's for some future extensio.
+
+Anyway the basic overview it that after setting up some segments, one periodically calls service(), which then checks next_time
+of each segment against the current millis() and calls each if needed; it receives back the delay before the next call.  If any
+segment gets calls, then adafruit's neopixel library pushes the data out to the pixels.
+
+
+
 -  has a number of iterations (calls) counter, since effect begun on this segment
 
 main loop:
